@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Go-Kart Controller</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    *, *::before, *::after {
+      box-sizing: inherit;
+    }
+
+    html {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    html, body, .root {
+      width: 100%;
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+    }
+
+    body {
+      display: flex;
+      background-color: white;
+    }
+
+    .root {
+      display: inline-flex;
+      align-items: center;
+      flex-direction: column;
+      justify-content: center;
+      margin: auto;
+      width: 100%;
+      padding: 2rem;
+      /* max-width: 400px; */
+    }
+
+    .slider-container {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .slider-container, .slider-container button {
+      font-size: 1.5rem;
+    }
+
+    .slider-container .container {
+      margin: 1rem 0;
+    }
+
+    .joystick-row {
+      display: flex;
+      flex-flow: row wrap;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .joystick-container {
+      display: flex;
+      flex-direction: column;
+      margin: 1em 0;
+      flex: 1;
+      align-items: center;
+      font-size: 1.2rem;
+    }
+
+    .joystick-container .label {
+      text-transform: uppercase;
+      font-weight: bold;
+      color: #777;
+    }
+
+    .joystick-container .value {}
+
+    #accelerator-joystick, #steering-joystick {
+      width: 300px;
+      height: 300px;
+      margin-bottom: 0;
+    }
+
+    input[type=range] {
+      width: 100%;
+      flex: 1;
+    }
+
+    button {
+      margin: 0 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="root">
+    <div class="slider-container">
+      <div class="container">
+        <span class="label">Speed:</span>
+        <input
+          id="speed"
+          type="range" min="79" max="100" step="1" value="79"
+          onchange="sendSliderData()"
+        >
+      </div>
+
+      <div class="container">
+        <span class="label">Steering:</span>
+        <input
+          id="steering"
+          type="range" min="-170" max="170" value="0"
+          onchange="sendSliderData()"
+        >
+      </div>
+
+      <button onclick="reset()">Reset</button>
+    </div>
+
+
+    <div class="joystick-row">
+      <div class="joystick-container">
+        <div id="accelerator-joystick"></div>
+        <span class="label">Accelerator</span>
+        <span class="value" id="accelerator-value">...</span>
+      </div>
+
+      <div class="joystick-container">
+        <div id="steering-joystick"></div>
+        <span class="label">Steering</span>
+        <span class="value" id="steering-value">...</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/joy.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script>
+    const socket = io()
+
+    // callback params: { xPosition, yPosition, cardinalDirection, x, y }
+    const acceleratorJoy = new JoyStick(
+      'accelerator-joystick',
+      { axis: 'y' },
+      () => sendJoystickData()
+    )
+    const steeringJoy = new JoyStick(
+      'steering-joystick',
+      { axis: 'x' },
+      () => sendJoystickData()
+    )
+
+    // TODO: fix last invocation not sent
+    function throttle(callback, wait, immediate = false) {
+      let timeout = null
+      let initialCall = true
+
+      return function() {
+        const callNow = immediate && initialCall
+        const next = () => {
+          callback.apply(this, arguments)
+          timeout = null
+        }
+
+        if (callNow) {
+          initialCall = false
+          next()
+        }
+
+        if (!timeout) {
+          timeout = setTimeout(next, wait)
+        }
+      }
+    }
+
+    const sendCommand = throttle(async (speed, steering) => {
+      if (speed < 80)
+        speed = 0
+
+      socket.volatile.emit('set', speed, steering)
+      // await fetch(`/api/set/${speed}/${steering}`)
+    }, 100)
+
+    function sendJoystickData() {
+      let speed = Math.round(parseInt(acceleratorJoy.GetY(), 10) / 4.7 + 79)
+      let steering = Math.round(parseInt(steeringJoy.GetX(), 10) * 1.7)
+
+      if (speed < 80)
+        speed = "stop"
+
+      document.querySelector('#accelerator-value').textContent = speed
+      document.querySelector('#steering-value').textContent = steering
+
+      sendCommand(speed, steering)
+    }
+
+    function sendSliderData() {
+      sendCommand(
+        parseInt(document.querySelector('#speed').value),
+        parseInt(document.querySelector('#steering').value)
+      )
+    }
+
+    function reset() {
+      document.querySelector('#speed').value = 79
+      document.querySelector('#steering').value = 0
+      sendCommand(0, 0)
+    }
+  </script>
+</body>
+</html>
+
