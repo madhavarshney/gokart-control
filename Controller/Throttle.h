@@ -9,6 +9,10 @@ public:
     speed = newSpeed;
   }
 
+  bool isStopped() {
+    return speed == 0;
+  }
+
   void update() {
     analogWrite(THROTTLE_PIN, speed);
   }

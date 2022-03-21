@@ -6,6 +6,8 @@
 #define THROTTLE_RADIO_IN_PIN 7
 #define STEERING_RADIO_IN_PIN 8
 
+#define STATUS_PIN 13
+
 #include "Steering.h"
 #include "Throttle.h"
 
@@ -26,10 +28,12 @@ void setup() {
   pinMode(THROTTLE_RADIO_IN_PIN, INPUT);
   pinMode(STEERING_RADIO_IN_PIN, INPUT);
 
+  pinMode(STATUS_PIN, OUTPUT);
+
   // Calibrate with center analog reading, max left/right turn amount
   steering.calibrate(520, 170);
 
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Native USB only
   }
@@ -38,6 +42,8 @@ void setup() {
 }
 
 void loop() {
+  bool isStopped = steering.isStopped() && throttle.isStopped();
+
   if (radioMode) {
     handleRadioInput();
   } else if (Serial.available() > 0) {
@@ -46,11 +52,13 @@ void loop() {
   } else if (
     requireCommandStream
     && millis() - lastCommandTime > maxWaitTime
-    && (!steering.isStopped() || throttle.getSpeed() > 0)
+    && !isStopped
   ) {
     Serial.println("Stopping - no command received");
     stop();
   }
+
+  digitalWrite(STATUS_PIN, isStopped ? LOW : HIGH);
 
   steering.update();
   throttle.update();

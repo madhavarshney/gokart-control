@@ -28,10 +28,8 @@ private:
     else if (currentPos > maxPos)
       return LEFT;
 
-    int dist = abs(currentPos - targetPos);
-
     // based on target position
-    if (dist < stopDelta)
+    if (abs(currentPos - targetPos) < stopDelta)
       return STOP;
     else if (currentPos > targetPos)
       return LEFT;
@@ -51,7 +49,7 @@ public:
   int getTargetPos() { return targetPos; }
   int getOffsetPos() { return targetPos - centerPos; } // TODO: rename method
 
-  bool isStopped() { return forceStop; }
+  bool isStopped() { return getDirection() == STOP; }
 
   void setTargetPos(int newTargetPos) {
     forceStop = false;
