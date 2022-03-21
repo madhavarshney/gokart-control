@@ -149,25 +149,26 @@
       () => sendJoystickData()
     )
 
-    // TODO: fix last invocation not sent
-    function throttle(callback, wait, immediate = false) {
-      let timeout = null
-      let initialCall = true
+    // From https://gist.github.com/ayushv512/a2f963bface38f5e2f6f6bba39bba9b9
+    const throttle = (func, limit) => {
+      let lastFunc;
+      let lastRan;
 
       return function() {
-        const callNow = immediate && initialCall
-        const next = () => {
-          callback.apply(this, arguments)
-          timeout = null
-        }
+        const context = this;
+        const args = arguments;
 
-        if (callNow) {
-          initialCall = false
-          next()
-        }
-
-        if (!timeout) {
-          timeout = setTimeout(next, wait)
+        if (!lastRan) {
+          func.apply(context, args)
+          lastRan = Date.now();
+        } else {
+          clearTimeout(lastFunc);
+          lastFunc = setTimeout(() => {
+            if ((Date.now() - lastRan) >= limit) {
+              func.apply(context, args);
+              lastRan = Date.now();
+            }
+          }, limit - (Date.now() - lastRan));
         }
       }
     }
