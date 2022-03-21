@@ -1,5 +1,5 @@
 {
-    "port": "/dev/ttyUSB0",
+    "port": "/dev/ttyACM0",
     "board": "arduino:avr:uno",
     "sketch": "Controller/Controller.ino",
     "output": "build"
