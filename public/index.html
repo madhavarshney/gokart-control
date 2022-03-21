@@ -185,9 +185,9 @@
       let steering = Math.round(parseInt(steeringJoy.GetX(), 10) * 1.7)
 
       if (speed < 80)
-        speed = "stop"
+        speed = 0
 
-      document.querySelector('#accelerator-value').textContent = speed
+      document.querySelector('#accelerator-value').textContent = speed || "stopped"
       document.querySelector('#steering-value').textContent = steering
 
       sendCommand(speed, steering)
