@@ -13,7 +13,7 @@ const {
 const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, {})
-const port = openSerialPort({ path: serialPort, buadRate: serialBaudRate })
+const port = openSerialPort({ path: serialPort, baudRate: serialBaudRate })
 
 // let remoteIsConnected = false
 
