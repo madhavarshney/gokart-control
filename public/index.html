@@ -149,6 +149,10 @@
       () => sendJoystickData()
     )
 
+    // Based on https://www.arduino.cc/reference/en/language/functions/math/map/
+    const mapNum = (x, inMin, inMax, outMin, outMax) =>
+      (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+
     // From https://gist.github.com/ayushv512/a2f963bface38f5e2f6f6bba39bba9b9
     const throttle = (func, limit) => {
       let lastFunc;
@@ -182,8 +186,19 @@
     }, 100)
 
     function sendJoystickData() {
-      let speed = Math.round(parseInt(acceleratorJoy.GetY(), 10) / 4.7 + 79)
-      let steering = Math.round(parseInt(steeringJoy.GetX(), 10) * 1.7)
+      // TODO: get min/max values for speed and steering position from server
+
+      let speed = Math.round(mapNum(
+        parseInt(acceleratorJoy.GetY(), 10),
+        -100, 100,
+        -30, 30
+      )) + 79
+
+      let steering = Math.round(mapNum(
+        parseInt(steeringJoy.GetX(), 10),
+        -100, 100,
+        -170, 170
+      ))
 
       if (speed < 80)
         speed = 0

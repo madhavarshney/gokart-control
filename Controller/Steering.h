@@ -1,26 +1,34 @@
+#include <Servo.h>
+
 class Steering {
 private:
   enum Direction {
     LEFT, RIGHT, STOP
   };
 
-  int centerPos;
-  int maxTurnDelta;
-  int minPos;
-  int maxPos;
+  int leftPin = -1;
+  int rightPin = -1;
+  int posPin = -1;
+
+  int centerPos = 0;
+  int maxTurnDelta = 0;
+  int minPos = 0;
+  int maxPos = 0;
 
   int steeringSpeed = 100;
   int stopDelta = 20;
 
   int forceStop = false;
-  int currentPos;
-  int targetPos;
+  int currentPos = 0;
+  int targetPos = 0;
+
+  Servo *testServo = nullptr;
 
   Direction getDirection() {
-    if (forceStop)
+    if (forceStop || testServo)
       return STOP;
 
-    currentPos = analogRead(STEERING_POS_PIN);
+    currentPos = analogRead(posPin);
 
     // safeguards
     if (currentPos < minPos)
@@ -38,6 +46,20 @@ private:
   }
 
 public:
+  void setup(int _rightPin, int _leftPin, int _posPin) {
+    _rightPin = rightPin;
+    _leftPin = leftPin;
+    _posPin = posPin;
+
+    pinMode(rightPin, OUTPUT);
+    pinMode(leftPin, OUTPUT);
+  }
+
+  void setupTestServo(int testServoPin) {
+    testServo = new Servo();
+    testServo->attach(testServoPin);
+  }
+
   void calibrate(int _centerPos, int _maxTurnDelta) {
     centerPos = _centerPos;
     maxTurnDelta = _maxTurnDelta;
@@ -65,15 +87,24 @@ public:
   void update() {
     Direction direction = getDirection();
 
+    if (testServo) {
+      testServo->write(map(
+        getOffsetPos(),
+        -1 * maxTurnDelta, maxTurnDelta,
+        0, 180
+      ));
+      return;
+    }
+
     if (direction == LEFT) {
-      analogWrite(STEERING_LEFT_PIN, steeringSpeed);
-      analogWrite(STEERING_RIGT_PIN, 0);
+      analogWrite(leftPin, steeringSpeed);
+      analogWrite(rightPin, 0);
     } else if (direction == RIGHT) {
-      analogWrite(STEERING_LEFT_PIN, 0);
-      analogWrite(STEERING_RIGT_PIN, steeringSpeed);
+      analogWrite(leftPin, 0);
+      analogWrite(rightPin, steeringSpeed);
     } else {
-      analogWrite(STEERING_LEFT_PIN, 0);
-      analogWrite(STEERING_RIGT_PIN, 0);
+      analogWrite(leftPin, 0);
+      analogWrite(rightPin, 0);
     }
   }
 

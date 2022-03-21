@@ -1,18 +1,19 @@
-#define THROTTLE_PIN 11
-#define STEERING_RIGT_PIN 10
-#define STEERING_LEFT_PIN 9
-#define STEERING_POS_PIN A0
-
-#define THROTTLE_RADIO_IN_PIN 7
-#define STEERING_RADIO_IN_PIN 8
-
-#define STATUS_PIN 13
-
 #include "Steering.h"
 #include "Throttle.h"
 
-Throttle throttle;
-Steering steering;
+constexpr size_t STATUS_LED_PIN          = 13;
+constexpr size_t THROTTLE_PIN            = 11;
+constexpr size_t STEERING_RIGHT_PIN      = 10;
+constexpr size_t STEERING_LEFT_PIN       = 9;
+constexpr size_t STEERING_TEST_SERVO_PIN = 9;
+constexpr size_t STEERING_POS_IN_PIN     = A0;
+
+constexpr size_t THROTTLE_RADIO_IN_PIN = 7;
+constexpr size_t STEERING_RADIO_IN_PIN = 8;
+
+// Mode to use testing peripherals: 
+// throttle - LED on PWM pin, steering - micro servo
+bool useTestPeripherals = false;
 
 bool radioMode = false;
 bool requireCommandStream = true;
@@ -20,27 +21,34 @@ bool requireCommandStream = true;
 unsigned long maxWaitTime = 3000; // 3 seconds
 unsigned long lastCommandTime = 0;
 
-void setup() {
-  pinMode(THROTTLE_PIN, OUTPUT);
-  pinMode(STEERING_RIGT_PIN, OUTPUT);
-  pinMode(STEERING_LEFT_PIN, OUTPUT);
+Throttle throttle;
+Steering steering;
 
+void setup() {
+  pinMode(STATUS_LED_PIN, OUTPUT);
   pinMode(THROTTLE_RADIO_IN_PIN, INPUT);
   pinMode(STEERING_RADIO_IN_PIN, INPUT);
 
-  pinMode(STATUS_PIN, OUTPUT);
+  throttle.setup(THROTTLE_PIN, useTestPeripherals);
 
-  // Calibrate with center analog reading, max left/right turn amount
-  steering.calibrate(520, 170);
+  if (useTestPeripherals)
+    steering.setupTestServo(STEERING_TEST_SERVO_PIN);
+  else
+    steering.setup(
+      STEERING_RIGHT_PIN,
+      STEERING_LEFT_PIN,
+      STEERING_POS_IN_PIN
+    );
+
   // Set min/max for throttle speed
   throttle.setMinMaxSpeed(80, 110);
+  // Calibrate with center analog reading, max left/right turn amount
+  steering.calibrate(520, 170);
 
   Serial.begin(115200);
-  while (!Serial) {
+  while (!Serial)
     ; // Wait for serial port to connect. Needed for Native USB only
-  }
-
-  Serial.println("Enter command:");
+  Serial.println("Listening for commands");
 }
 
 void loop() {
@@ -60,7 +68,7 @@ void loop() {
     stop();
   }
 
-  digitalWrite(STATUS_PIN, isStopped ? LOW : HIGH);
+  digitalWrite(STATUS_LED_PIN, isStopped ? LOW : HIGH);
 
   steering.update();
   throttle.update();
