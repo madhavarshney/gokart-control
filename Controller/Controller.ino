@@ -32,10 +32,12 @@ void setup() {
 
   // Calibrate with center analog reading, max left/right turn amount
   steering.calibrate(520, 170);
+  // Set min/max for throttle speed
+  throttle.setMinMaxSpeed(80, 110);
 
   Serial.begin(115200);
   while (!Serial) {
-    ; // wait for serial port to connect. Needed for Native USB only
+    ; // Wait for serial port to connect. Needed for Native USB only
   }
 
   Serial.println("Enter command:");
@@ -101,13 +103,18 @@ void handleSerialInput() {
 }
 
 /**
- * Radio control
+ * Scale radio control input and set values
  */
 void handleRadioInput() {
-  long throttleInput = pulseIn(THROTTLE_RADIO_IN_PIN, HIGH);
-  long steeringInput = pulseIn(STEERING_RADIO_IN_PIN, HIGH);
+  throttle.setSpeed(map(
+    pulseIn(THROTTLE_RADIO_IN_PIN, HIGH),
+    1000, 2000,
+    throttle.getMinSpeed(), throttle.getMaxSpeed()
+  ));
 
-  // TODO: update math
-  throttle.setSpeed(((throttleInput - 1000) - 500) / 5);
-  steering.setTargetPos(((steeringInput - 1000) - 500) / 5);
+  steering.setTargetPos(map(
+    pulseIn(STEERING_RADIO_IN_PIN, HIGH),
+    1000, 2000,
+    -1 * steering.getMaxTurnDelta(), steering.getMaxTurnDelta()
+  ));
 }

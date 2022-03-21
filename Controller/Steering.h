@@ -13,8 +13,8 @@ private:
   int stopDelta = 20;
 
   int forceStop = false;
-  int currentPos = centerPos;
-  int targetPos = centerPos;
+  int currentPos;
+  int targetPos;
 
   Direction getDirection() {
     if (forceStop)
@@ -43,11 +43,17 @@ public:
     maxTurnDelta = _maxTurnDelta;
     minPos = centerPos - maxTurnDelta;
     maxPos = centerPos + maxTurnDelta;
+    targetPos = centerPos;
   }
 
   int getCurrentPos() { return currentPos; }
   int getTargetPos() { return targetPos; }
   int getOffsetPos() { return targetPos - centerPos; } // TODO: rename method
+
+  int getCenterPos() { return centerPos; }
+  int getMaxTurnDelta() { return maxTurnDelta; }
+  int getMinPos() { return minPos; }
+  int getMaxPos() { return maxPos; }
 
   bool isStopped() { return getDirection() == STOP; }
 
