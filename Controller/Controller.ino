@@ -3,8 +3,8 @@
 
 constexpr size_t STATUS_LED_PIN          = 13;
 constexpr size_t THROTTLE_PIN            = 11;
-constexpr size_t STEERING_RIGHT_PIN      = 10;
-constexpr size_t STEERING_LEFT_PIN       = 9;
+constexpr size_t STEERING_RIGHT_PIN      = 9;
+constexpr size_t STEERING_LEFT_PIN       = 10;
 constexpr size_t STEERING_TEST_SERVO_PIN = 9;
 constexpr size_t STEERING_POS_IN_PIN     = A0;
 
@@ -43,7 +43,7 @@ void setup() {
   // Set min/max for throttle speed
   throttle.setMinMaxSpeed(80, 110);
   // Calibrate with center analog reading, max left/right turn amount
-  steering.calibrate(520, 170);
+  steering.calibrate(520, 185);
 
   Serial.begin(115200);
   while (!Serial)

@@ -15,7 +15,7 @@ private:
   int minPos = 0;
   int maxPos = 0;
 
-  int steeringSpeed = 100;
+  int steeringSpeed = 110;
   int stopDelta = 20;
 
   int forceStop = false;
@@ -47,9 +47,9 @@ private:
 
 public:
   void setup(int _rightPin, int _leftPin, int _posPin) {
-    _rightPin = rightPin;
-    _leftPin = leftPin;
-    _posPin = posPin;
+    rightPin = _rightPin;
+    leftPin = _leftPin;
+    posPin = _posPin;
 
     pinMode(rightPin, OUTPUT);
     pinMode(leftPin, OUTPUT);

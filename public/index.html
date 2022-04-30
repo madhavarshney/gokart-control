@@ -107,7 +107,7 @@
         <span class="label">Steering:</span>
         <input
           id="steering"
-          type="range" min="-170" max="170" value="0"
+          type="range" min="-185" max="185" value="0"
           onchange="sendSliderData()"
         >
       </div>
@@ -197,7 +197,7 @@
       let steering = Math.round(mapNum(
         parseInt(steeringJoy.GetX(), 10),
         -100, 100,
-        -170, 170
+        -185, 185
       ))
 
       if (speed < 80)
