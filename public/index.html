@@ -184,6 +184,9 @@
 
       socket.volatile.emit('set', speed, steering)
       // await fetch(`/api/set/${speed}/${steering}`)
+
+      // const res = await fetch(`/api?speed=${speed}&steering=${steering}`)
+      // console.log(await res.json())
     }, 100)
 
     function sendJoystickData() {

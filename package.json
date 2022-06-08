@@ -12,6 +12,7 @@
   "dependencies": {
     "@serialport/parser-readline": "^9.2.4",
     "express": "^4.17.2",
+    "express-http-proxy": "^1.6.3",
     "serialport": "^9.2.8",
     "socket.io": "^4.4.1"
   }

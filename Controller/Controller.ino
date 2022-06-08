@@ -1,5 +1,11 @@
+// For Arduino Nano 33 IoT (experimental)
+// #define ENABLE_WIFI_SERVER;
+
 #include "Steering.h"
 #include "Throttle.h"
+#ifdef ENABLE_WIFI_SERVER
+#include "WiFiInput.h"
+#endif
 
 constexpr size_t STATUS_LED_PIN          = 13;
 constexpr size_t THROTTLE_PIN            = 11;
@@ -15,7 +21,7 @@ constexpr size_t STEERING_RADIO_IN_PIN = 8;
 // throttle - LED on PWM pin, steering - micro servo
 bool useTestPeripherals = false;
 
-bool radioMode = false;
+bool wifiMode = false;
 bool requireCommandStream = true;
 
 unsigned long maxWaitTime = 3000; // 3 seconds
@@ -23,6 +29,10 @@ unsigned long lastCommandTime = 0;
 
 Throttle throttle;
 Steering steering;
+
+#ifdef ENABLE_WIFI_SERVER
+WiFiInput wifi(throttle, steering);
+#endif
 
 void setup() {
   pinMode(STATUS_LED_PIN, OUTPUT);
@@ -49,10 +59,18 @@ void setup() {
   while (!Serial)
     ; // Wait for serial port to connect. Needed for Native USB only
   Serial.println("Listening for commands");
+
+  #ifdef ENABLE_WIFI_SERVER
+  wifi.setup();
+  #endif
 }
 
 void loop() {
   bool isStopped = steering.isStopped() && throttle.isStopped();
+
+  #ifdef ENABLE_WIFI_SERVER
+  lastCommandTime = wifi.handleInput();
+  #endif
 
   if (radioMode) {
     handleRadioInput();
