@@ -14,11 +14,27 @@ const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, {})
 
+let lastArduinoState = null
+
 const port = createSerialPort({
   path: serialPort,
   baudRate: serialBaudRate,
-  onUpdate: (data) => io.emit('arduino-state', data)
+  onUpdate: (data) => {
+    lastArduinoState = data
+    sendState(io)
+  },
+  onClose: () => {
+    lastArduinoState = null
+    sendState(io)
+  }
 })
+
+function sendState(socketOrIo) {
+  socketOrIo.emit('state', {
+    connectedToArduino: port.isOpen,
+    ...(lastArduinoState || {}),
+  })
+}
 
 // let remoteIsConnected = false
 
@@ -29,6 +45,8 @@ io.on('connection', (socket) => {
   //   return socket.disconnect()
 
   // remoteIsConnected = true
+
+  sendState(socket)
 
   socket.on('set', (speed, steering) => {
     if (port.isOpen) {

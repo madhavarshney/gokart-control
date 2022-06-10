@@ -1,7 +1,7 @@
 const SerialPort = require('serialport')
 const Readline = require('@serialport/parser-readline')
 
-function createSerialPort({ path, baudRate, onUpdate }) {
+function createSerialPort({ path, baudRate, onUpdate, onClose }) {
   const port = new SerialPort(path, { baudRate, autoOpen: false })
   const parser = port.pipe(new Readline({ delimiter: '\n' }))
 
@@ -11,6 +11,7 @@ function createSerialPort({ path, baudRate, onUpdate }) {
 
   port.on('close', () => {
     console.log(`Serial port ${path} closed, trying to reopen`)
+    onClose()
     openSerialPort(port)
   })
 
