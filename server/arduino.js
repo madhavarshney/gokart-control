@@ -21,7 +21,7 @@ function createSerialPort({ path, baudRate, onUpdate, onClose }) {
     try {
       data = JSON.parse(dataString)
     } catch (err) {
-      console.log(`Unknown Arduino Message: ${dataString}`)
+      console.log(`Arduino: ${dataString}`)
       return
     }
 

@@ -119,7 +119,7 @@ void loop() {
       && currentMillis - lastCommandTime > maxWaitTime
       && !isStopped
     ) {
-      Serial.println("Stopping - no command received");
+      // Stop if no command is received
       stop();
     }
   } else if (!isStopped) {
@@ -201,6 +201,7 @@ void sendStateUpdate() {
   JsonObject generalDoc = doc.createNestedObject("general");
   generalDoc["motorEnabled"] = motorEnabled;
   generalDoc["mode"] = manualMode ? "manual" : radioMode ? "radio" : "phone";
+  generalDoc["isStopped"] = isStopped;
 
   JsonObject throttleDoc = doc.createNestedObject("throttle");
   throttleDoc["speed"] = throttle.getSpeed();
