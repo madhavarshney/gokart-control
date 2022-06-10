@@ -15,7 +15,7 @@ private:
   int minPos = 0;
   int maxPos = 0;
 
-  int steeringSpeed = 110;
+  int steeringSpeed = 125;
   int stopDelta = 20;
 
   int forceStop = false;
@@ -76,6 +76,9 @@ public:
   int getMaxTurnDelta() { return maxTurnDelta; }
   int getMinPos() { return minPos; }
   int getMaxPos() { return maxPos; }
+
+  int getSpeed() { return steeringSpeed; }
+  int getStopDelta() { return stopDelta; }
 
   bool isStopped() { return getDirection() == STOP; }
 

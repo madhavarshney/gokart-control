@@ -3,15 +3,17 @@
 
 #include "Steering.h"
 #include "Throttle.h"
+#include "ArduinoJson.h"
+
 #ifdef ENABLE_WIFI_SERVER
 #include "WiFiInput.h"
 #endif
 
 constexpr size_t STATUS_LED_PIN          = 13;
 constexpr size_t THROTTLE_PIN            = 11;
-constexpr size_t STEERING_RIGHT_PIN      = 9;
-constexpr size_t STEERING_LEFT_PIN       = 10;
-constexpr size_t STEERING_TEST_SERVO_PIN = 9;
+constexpr size_t STEERING_RIGHT_PIN      = 10;
+constexpr size_t STEERING_LEFT_PIN       = 9;
+constexpr size_t STEERING_TEST_SERVO_PIN = 10;
 constexpr size_t STEERING_POS_IN_PIN     = A0;
 
 constexpr size_t THROTTLE_RADIO_IN_PIN = 7;
@@ -21,7 +23,14 @@ constexpr size_t STEERING_RADIO_IN_PIN = 8;
 // throttle - LED on PWM pin, steering - micro servo
 bool useTestPeripherals = false;
 
-bool wifiMode = false;
+bool enableThrottleRadioIn = false;
+bool enableSteeringRadioIn = true;
+
+// Pulse Widths
+int radioThrottlePW = 1500;
+int radioSteeringPW = 1500;
+
+bool radioMode = true;
 bool requireCommandStream = true;
 
 unsigned long maxWaitTime = 3000; // 3 seconds
@@ -36,8 +45,11 @@ WiFiInput wifi(throttle, steering);
 
 void setup() {
   pinMode(STATUS_LED_PIN, OUTPUT);
-  pinMode(THROTTLE_RADIO_IN_PIN, INPUT);
-  pinMode(STEERING_RADIO_IN_PIN, INPUT);
+
+  if (enableThrottleRadioIn)
+    pinMode(THROTTLE_RADIO_IN_PIN, INPUT);
+  if (enableSteeringRadioIn)
+    pinMode(STEERING_RADIO_IN_PIN, INPUT);
 
   throttle.setup(THROTTLE_PIN, useTestPeripherals);
 
@@ -91,6 +103,8 @@ void loop() {
   steering.update();
   throttle.update();
 
+  sendStateUpdate();
+
   delay(50);
 }
 
@@ -121,26 +135,56 @@ void handleSerialInput() {
   }
 
   Serial.read();
-
-  Serial.print("Set speed: ");
-  Serial.print(throttle.getSpeed());
-  Serial.print(", steeringPos: ");
-  Serial.println(steering.getOffsetPos());
 }
 
 /**
  * Scale radio control input and set values
+ *
+ * TODO: switch from pulseIn to interrupts
  */
 void handleRadioInput() {
-  throttle.setSpeed(map(
-    pulseIn(THROTTLE_RADIO_IN_PIN, HIGH),
-    1000, 2000,
-    throttle.getMinSpeed(), throttle.getMaxSpeed()
-  ));
+  if (enableThrottleRadioIn) {
+    radioThrottlePW = pulseIn(THROTTLE_RADIO_IN_PIN, HIGH);
 
-  steering.setTargetPos(map(
-    pulseIn(STEERING_RADIO_IN_PIN, HIGH),
-    1000, 2000,
-    -1 * steering.getMaxTurnDelta(), steering.getMaxTurnDelta()
-  ));
+    throttle.setSpeed(map(
+      radioThrottlePW, 1000, 2000,
+      throttle.getMinSpeed(), throttle.getMaxSpeed()
+    ));
+  }
+
+  if (enableSteeringRadioIn) {
+    radioSteeringPW = pulseIn(STEERING_RADIO_IN_PIN, HIGH);
+
+    steering.setTargetPos(map(
+      radioSteeringPW, 1000, 2000,
+      -1 * steering.getMaxTurnDelta(), steering.getMaxTurnDelta()
+    ));
+  }
+}
+
+void sendStateUpdate() {
+  StaticJsonDocument<256> doc;
+
+  JsonObject throttleDoc = doc.createNestedObject("throttle");
+  throttleDoc["speed"] = throttle.getSpeed();
+  throttleDoc["minSpeed"] = throttle.getMinSpeed();
+  throttleDoc["maxSpeed"] = throttle.getMaxSpeed();
+
+  JsonObject steeringDoc = doc.createNestedObject("steering");
+  steeringDoc["targetPos"] = steering.getTargetPos();
+  steeringDoc["currentPos"] = steering.getCurrentPos();
+  steeringDoc["centerPos"] = steering.getCenterPos();
+  steeringDoc["maxTurnDelta"] = steering.getMaxTurnDelta();
+  steeringDoc["speed"] = steering.getSpeed();
+  steeringDoc["stopDelta"] = steering.getStopDelta();
+
+  JsonObject radioDoc = doc.createNestedObject("radio");
+
+  if (enableThrottleRadioIn)
+    radioDoc["throttle"] = radioThrottlePW;
+  if (enableSteeringRadioIn)
+    radioDoc["steering"] = radioSteeringPW;
+
+  serializeJson(doc, Serial);
+  Serial.print("\n");
 }
