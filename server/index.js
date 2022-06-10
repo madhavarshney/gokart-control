@@ -1,8 +1,8 @@
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const express = require('express');
+const { createServer } = require('http')
+const { Server } = require('socket.io')
+const express = require('express')
 
-const { openSerialPort, sendToArduino } = require('./arduino')
+const { createSerialPort, sendToArduino } = require('./arduino')
 const {
   enableRestControl,
   httpPort,
@@ -14,15 +14,24 @@ const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, {})
 
-const port = openSerialPort({
+const port = createSerialPort({
   path: serialPort,
   baudRate: serialBaudRate,
   onUpdate: (data) => io.emit('arduino-state', data)
 })
 
+function openPort() {
+  port.open((err) => {
+    if (err) {
+      console.log('Error opening port: ', err.message)
+      setTimeout(openPort, 800)
+    }
+  })
+}
+
 // let remoteIsConnected = false
 
-app.use(express.static('public'));
+app.use(express.static('public'))
 
 io.on('connection', (socket) => {
   // if (remoteIsConnected)
@@ -31,7 +40,9 @@ io.on('connection', (socket) => {
   // remoteIsConnected = true
 
   socket.on('set', (speed, steering) => {
-    sendToArduino(port, { speed, steering })
+    if (port.isOpen) {
+      sendToArduino(port, { speed, steering })
+    }
   })
 
   socket.on('disconnect', () => {
@@ -48,6 +59,10 @@ if (enableRestControl) {
 
       console.log(req.params)
 
+      if (!port.isOpen) {
+        return res.status(502).send({ error: 'Arduino not connected' });
+      }
+
       sendToArduino(port, { speed, steering }, (err) => {
         if (err)
           return res.status(500).send({ error: err.message })
@@ -60,6 +75,7 @@ if (enableRestControl) {
   })
 }
 
+openPort()
 httpServer.listen(httpPort, () => {
   console.log(`Go-kart controller listening on port ${httpPort}`)
 })

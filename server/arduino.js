@@ -1,8 +1,8 @@
 const SerialPort = require('serialport')
 const Readline = require('@serialport/parser-readline')
 
-function openSerialPort({ path, baudRate, onUpdate }) {
-  const port = new SerialPort(path, { baudRate })
+function createSerialPort({ path, baudRate, onUpdate }) {
+  const port = new SerialPort(path, { baudRate, autoOpen: false })
   const parser = port.pipe(new Readline({ delimiter: '\n' }))
 
   port.on('open', () => {
@@ -34,4 +34,4 @@ function sendToArduino(port, params, callback) {
   })
 }
 
-module.exports = { openSerialPort, sendToArduino }
+module.exports = { createSerialPort, sendToArduino }
