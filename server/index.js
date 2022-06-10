@@ -13,7 +13,12 @@ const {
 const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, {})
-const port = openSerialPort({ path: serialPort, baudRate: serialBaudRate })
+
+const port = openSerialPort({
+  path: serialPort,
+  baudRate: serialBaudRate,
+  onUpdate: (data) => io.emit('arduino-state', data)
+})
 
 // let remoteIsConnected = false
 

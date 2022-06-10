@@ -18,14 +18,16 @@ private:
   int steeringSpeed = 125;
   int stopDelta = 20;
 
-  int forceStop = false;
+  bool motorEnabled = false;
+  bool forceStop = false;
+
   int currentPos = 0;
   int targetPos = 0;
 
   Servo *testServo = nullptr;
 
   Direction getDirection() {
-    if (forceStop || testServo)
+    if (!motorEnabled || forceStop || testServo)
       return STOP;
 
     currentPos = analogRead(posPin);
@@ -81,6 +83,9 @@ public:
   int getStopDelta() { return stopDelta; }
 
   bool isStopped() { return getDirection() == STOP; }
+  bool isMotorEnabled() { return motorEnabled; }
+
+  void setMotorEnabled(bool enabled) { motorEnabled = enabled; } 
 
   void setTargetPos(int newTargetPos) {
     forceStop = false;

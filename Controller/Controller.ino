@@ -1,5 +1,5 @@
 // For Arduino Nano 33 IoT (experimental)
-// #define ENABLE_WIFI_SERVER;
+// #define ENABLE_WIFI_SERVER true;
 
 #include "Steering.h"
 #include "Throttle.h"
@@ -19,7 +19,11 @@ constexpr size_t STEERING_POS_IN_PIN     = A0;
 constexpr size_t THROTTLE_RADIO_IN_PIN = 7;
 constexpr size_t STEERING_RADIO_IN_PIN = 8;
 
-// Mode to use testing peripherals: 
+constexpr size_t ENABLE_PIN = 4;
+constexpr size_t RADIO_TOGGLE_PIN = 3;
+constexpr size_t MANUAL_TOGGLE_PIN = 2;
+
+// Mode to use testing peripherals:
 // throttle - LED on PWM pin, steering - micro servo
 bool useTestPeripherals = false;
 
@@ -30,8 +34,12 @@ bool enableSteeringRadioIn = true;
 int radioThrottlePW = 1500;
 int radioSteeringPW = 1500;
 
-bool radioMode = true;
 bool requireCommandStream = true;
+
+bool isStopped = true;
+bool radioMode = false;
+bool motorEnabled = false;
+bool manualMode = true;
 
 unsigned long maxWaitTime = 3000; // 3 seconds
 unsigned long lastCommandTime = 0;
@@ -50,6 +58,10 @@ void setup() {
     pinMode(THROTTLE_RADIO_IN_PIN, INPUT);
   if (enableSteeringRadioIn)
     pinMode(STEERING_RADIO_IN_PIN, INPUT);
+
+  pinMode(ENABLE_PIN, INPUT_PULLUP);
+  pinMode(RADIO_TOGGLE_PIN, INPUT_PULLUP);
+  pinMode(MANUAL_TOGGLE_PIN, INPUT_PULLUP);
 
   throttle.setup(THROTTLE_PIN, useTestPeripherals);
 
@@ -78,7 +90,14 @@ void setup() {
 }
 
 void loop() {
-  bool isStopped = steering.isStopped() && throttle.isStopped();
+  isStopped = steering.isStopped() && throttle.isStopped();
+
+  motorEnabled = digitalRead(ENABLE_PIN) == HIGH ? true : false; // TODO: reverse when physical button is fixed
+  radioMode = digitalRead(RADIO_TOGGLE_PIN) == HIGH ? true : false;
+  manualMode = digitalRead(MANUAL_TOGGLE_PIN) == HIGH ? true : false;
+
+  throttle.setMotorEnabled(motorEnabled && !manualMode);
+  steering.setMotorEnabled(motorEnabled && !manualMode);
 
   #ifdef ENABLE_WIFI_SERVER
   lastCommandTime = wifi.handleInput();
@@ -164,6 +183,10 @@ void handleRadioInput() {
 
 void sendStateUpdate() {
   StaticJsonDocument<256> doc;
+
+  JsonObject generalDoc = doc.createNestedObject("general");
+  generalDoc["motorEnabled"] = motorEnabled;
+  generalDoc["mode"] = manualMode ? "manual" : radioMode ? "radio" : "phone";
 
   JsonObject throttleDoc = doc.createNestedObject("throttle");
   throttleDoc["speed"] = throttle.getSpeed();

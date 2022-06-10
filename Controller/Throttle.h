@@ -2,6 +2,7 @@ class Throttle {
 private:
   int pin = -1;
   bool useTestLed = false;
+  bool motorEnabled = false;
 
   int speed = 0;
   int minSpeed = 0;
@@ -17,6 +18,9 @@ public:
   int getSpeed() { return speed; }
   int getMinSpeed() { return minSpeed; }
   int getMaxSpeed() { return maxSpeed; }
+  bool isMotorEnabled() { return motorEnabled; }
+
+  void setMotorEnabled(bool enabled) { motorEnabled = enabled; }
 
   void setSpeed(int newSpeed) {
     speed = newSpeed;

@@ -50,6 +50,15 @@
       margin: 1rem 0;
     }
 
+    .debug-pane {
+      display: flex;
+      align-items: space-between;
+    }
+
+    .state-display {
+      font-size: 1.1rem;
+    }
+
     .joystick-row {
       display: flex;
       flex-flow: row wrap;
@@ -94,26 +103,32 @@
 
 <body>
   <div class="root">
-    <div class="slider-container">
-      <div class="container">
-        <span class="label">Speed:</span>
-        <input
-          id="speed"
-          type="range" min="79" max="100" step="1" value="79"
-          onchange="sendSliderData()"
-        >
+    <div class="debug-pane">
+      <div class="slider-container">
+        <div class="container">
+          <span class="label">Speed:</span>
+          <input
+            id="speed"
+            type="range" min="79" max="100" step="1" value="79"
+            onchange="sendSliderData()"
+          >
+        </div>
+
+        <div class="container">
+          <span class="label">Steering:</span>
+          <input
+            id="steering"
+            type="range" min="-185" max="185" value="0"
+            onchange="sendSliderData()"
+          >
+        </div>
+
+        <button onclick="reset()">Reset</button>
       </div>
 
-      <div class="container">
-        <span class="label">Steering:</span>
-        <input
-          id="steering"
-          type="range" min="-185" max="185" value="0"
-          onchange="sendSliderData()"
-        >
+      <div class="state-display">
+        <pre></pre>
       </div>
-
-      <button onclick="reset()">Reset</button>
     </div>
 
 
@@ -137,6 +152,15 @@
 
   <script>
     const socket = io()
+    const stateDisplay = document.querySelector('.state-display pre');
+
+    let arduinoState = null;
+
+    socket.on('arduino-state', (data) => {
+      arduinoState = data;
+
+      stateDisplay.textContent = JSON.stringify(arduinoState, undefined, 2);
+    })
 
     // callback params: { xPosition, yPosition, cardinalDirection, x, y }
     const acceleratorJoy = new JoyStick(

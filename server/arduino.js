@@ -1,7 +1,7 @@
 const SerialPort = require('serialport')
 const Readline = require('@serialport/parser-readline')
 
-function openSerialPort({ path, baudRate }) {
+function openSerialPort({ path, baudRate, onUpdate }) {
   const port = new SerialPort(path, { baudRate })
   const parser = port.pipe(new Readline({ delimiter: '\n' }))
 
@@ -9,8 +9,17 @@ function openSerialPort({ path, baudRate }) {
     console.log(`Serial port ${path} opened`)
   })
 
-  parser.on('data', data => {
-    console.log('[Arduino]', data)
+  parser.on('data', dataString => {
+    let data;
+
+    try {
+      data = JSON.parse(dataString);
+    } catch (err) {
+      console.log(`Unknown Arduino Message: ${dataString}`);
+      return;
+    }
+
+    onUpdate(data);
   })
 
   return port
