@@ -44,6 +44,9 @@ bool manualMode = true;
 unsigned long maxWaitTime = 3000; // 3 seconds
 unsigned long lastCommandTime = 0;
 
+unsigned long stateUpdateInterval = 200; // .2 seconds
+unsigned long lastStateUpdateTime = 0;
+
 Throttle throttle;
 Steering steering;
 
@@ -90,6 +93,8 @@ void setup() {
 }
 
 void loop() {
+  unsigned long currentMillis = millis();
+
   isStopped = steering.isStopped() && throttle.isStopped();
 
   motorEnabled = digitalRead(ENABLE_PIN);
@@ -107,11 +112,11 @@ void loop() {
     if (radioMode) {
       handleRadioInput();
     } else if (Serial.available() > 0) {
-      lastCommandTime = millis();
+      lastCommandTime = currentMillis;
       handleSerialInput();
     } else if (
       requireCommandStream
-      && millis() - lastCommandTime > maxWaitTime
+      && currentMillis - lastCommandTime > maxWaitTime
       && !isStopped
     ) {
       Serial.println("Stopping - no command received");
@@ -126,9 +131,14 @@ void loop() {
   steering.update();
   throttle.update();
 
-  sendStateUpdate();
+  currentMillis = millis();
 
-  delay(50);
+  if (currentMillis - lastStateUpdateTime > stateUpdateInterval) {
+    lastStateUpdateTime = currentMillis;
+    sendStateUpdate();
+  }
+
+  // delay(50);
 }
 
 void stop() {

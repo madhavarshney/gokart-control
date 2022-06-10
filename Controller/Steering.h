@@ -26,11 +26,13 @@ private:
 
   Servo *testServo = nullptr;
 
+  void updateCurrentPos() {
+    currentPos = analogRead(posPin);
+  }
+
   Direction getDirection() {
     if (!motorEnabled || forceStop || testServo)
       return STOP;
-
-    currentPos = analogRead(posPin);
 
     // safeguards
     if (currentPos < minPos)
@@ -85,7 +87,7 @@ public:
   bool isStopped() { return getDirection() == STOP; }
   bool isMotorEnabled() { return motorEnabled; }
 
-  void setMotorEnabled(bool enabled) { motorEnabled = enabled; } 
+  void setMotorEnabled(bool enabled) { motorEnabled = enabled; }
 
   void setTargetPos(int newTargetPos) {
     forceStop = false;
@@ -93,6 +95,8 @@ public:
   }
 
   void update() {
+    updateCurrentPos();
+
     Direction direction = getDirection();
 
     if (testServo) {
