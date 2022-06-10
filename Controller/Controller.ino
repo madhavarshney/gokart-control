@@ -92,9 +92,9 @@ void setup() {
 void loop() {
   isStopped = steering.isStopped() && throttle.isStopped();
 
-  motorEnabled = digitalRead(ENABLE_PIN) == HIGH ? true : false; // TODO: reverse when physical button is fixed
-  radioMode = digitalRead(RADIO_TOGGLE_PIN) == HIGH ? true : false;
-  manualMode = digitalRead(MANUAL_TOGGLE_PIN) == HIGH ? true : false;
+  motorEnabled = digitalRead(ENABLE_PIN);
+  radioMode = digitalRead(RADIO_TOGGLE_PIN);
+  manualMode = digitalRead(MANUAL_TOGGLE_PIN);
 
   throttle.setMotorEnabled(motorEnabled && !manualMode);
   steering.setMotorEnabled(motorEnabled && !manualMode);
@@ -103,17 +103,21 @@ void loop() {
   lastCommandTime = wifi.handleInput();
   #endif
 
-  if (radioMode) {
-    handleRadioInput();
-  } else if (Serial.available() > 0) {
-    lastCommandTime = millis();
-    handleSerialInput();
-  } else if (
-    requireCommandStream
-    && millis() - lastCommandTime > maxWaitTime
-    && !isStopped
-  ) {
-    Serial.println("Stopping - no command received");
+  if (!manualMode) {
+    if (radioMode) {
+      handleRadioInput();
+    } else if (Serial.available() > 0) {
+      lastCommandTime = millis();
+      handleSerialInput();
+    } else if (
+      requireCommandStream
+      && millis() - lastCommandTime > maxWaitTime
+      && !isStopped
+    ) {
+      Serial.println("Stopping - no command received");
+      stop();
+    }
+  } else if (!isStopped) {
     stop();
   }
 
@@ -182,7 +186,7 @@ void handleRadioInput() {
 }
 
 void sendStateUpdate() {
-  StaticJsonDocument<256> doc;
+  StaticJsonDocument<384> doc;
 
   JsonObject generalDoc = doc.createNestedObject("general");
   generalDoc["motorEnabled"] = motorEnabled;
