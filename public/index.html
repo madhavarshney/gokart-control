@@ -2,8 +2,17 @@
 <html>
 <head>
   <title>Go-Kart Controller</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes" />
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
     *, *::before, *::after {
@@ -12,7 +21,10 @@
 
     html {
       box-sizing: border-box;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    html, button, input, textarea {
+      font-family: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     }
 
     html, body, .root {
@@ -38,45 +50,105 @@
       /* max-width: 400px; */
     }
 
+    .debug-toggle-btn {
+      position: fixed;
+      top: calc(env(safe-area-inset-top) + 4px);
+      right: calc(env(safe-area-inset-right) + 4px);
+      font-size: 1rem;
+    }
+
+    .debug-container {
+      display: none;
+    }
+
+    .debug-mode .debug-container {
+      display: block;
+    }
+
+    .raw-state-display {
+      border: solid 2px #777;
+      padding: 0.5rem 1rem;
+    }
+
+    .raw-state-display pre {
+      font-size: 1rem;
+    }
+
     .slider-container {
       width: 100%;
       max-width: 400px;
+      margin-bottom: 2rem;
+      border: solid 2px #777;
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
 
     .slider-container, .slider-container button {
-      font-size: 1.5rem;
+      font-size: 1.1rem;
     }
 
-    .slider-container .container {
-      margin: 1rem 0;
+    .slider-container button.reset {
+      margin: 0 4px;
     }
 
-    .debug-pane {
+    .slider-container input[type=range] {
+      width: 100%;
+      flex: 1;
+    }
+
+    .remote-container {
       display: flex;
-      align-items: space-between;
+      flex-flow: row wrap;
+      align-items: center;
+      justify-content: space-evenly;
+      width: 100%;
+      row-gap: 2rem;
+    }
+
+    .debug-mode .remote-container {
+      display: none;
     }
 
     .state-display {
       font-size: 1.1rem;
+      padding: 1rem;
+      flex: 1;
+      color: #777;
+      max-width: 320px;
+      border: solid 2px #fb2e0c;
     }
 
-    .joystick-row {
+    .connected-to-server .state-display {
+      border: solid 2px #777;
+    }
+
+    .state-display .state-value {
       display: flex;
-      flex-flow: row wrap;
       justify-content: space-between;
-      width: 100%;
-      user-select: none;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
+    }
+
+    .state-display h3 {
+      margin-top: .8rem;
+      margin-bottom: .4rem;
+      font-size: 1.1em;
+    }
+
+    @media screen and (max-width: 465px) {
+      .state-display {
+        order: -1;
+      }
     }
 
     .joystick-container {
       display: flex;
       flex-direction: column;
-      margin: 1em 0;
-      flex: 1;
       align-items: center;
       font-size: 1.2rem;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
     }
 
     .joystick-container .label {
@@ -87,32 +159,32 @@
 
     .joystick-container .value {}
 
-    #accelerator-joystick, #steering-joystick {
-      width: 300px;
-      height: 300px;
+    #throttle-joystick, #steering-joystick {
+      /* TODO: make these values responsive */
+      width: 275px;
+      height: 275px;
+      margin-top: -36px;
       margin-bottom: 0;
-    }
-
-    input[type=range] {
-      width: 100%;
-      flex: 1;
-    }
-
-    button {
-      margin: 0 4px;
     }
   </style>
 </head>
 
 <body>
   <div class="root">
-    <div class="debug-pane">
+    <button class="debug-toggle-btn" onclick="toggleDebugMode()">
+      Debug
+    </button>
+
+    <div class="debug-container">
       <div class="slider-container">
         <div class="container">
-          <span class="label">Speed:</span>
+          <span class="label">Throttle:</span>
           <input
-            id="speed"
-            type="range" min="79" max="100" step="1" value="79"
+            id="throttle"
+            type="range"
+            step="1"
+            value="0"
+            disabled
             onchange="sendSliderData()"
           >
         </div>
@@ -121,25 +193,73 @@
           <span class="label">Steering:</span>
           <input
             id="steering"
-            type="range" min="-185" max="185" value="0"
+            type="range"
+            value="0"
+            disabled
             onchange="sendSliderData()"
           >
         </div>
 
-        <button onclick="reset()">Reset</button>
+        <button class="reset" onclick="reset()">Reset</button>
       </div>
 
-      <div class="state-display">
+      <div class="raw-state-display">
         <pre></pre>
       </div>
     </div>
 
-
-    <div class="joystick-row">
+    <div class="remote-container">
       <div class="joystick-container">
-        <div id="accelerator-joystick"></div>
-        <span class="label">Accelerator</span>
-        <span class="value" id="accelerator-value">...</span>
+        <div id="throttle-joystick"></div>
+        <span class="label">Throttle</span>
+        <span class="value" id="throttle-value">...</span>
+      </div>
+
+      <div class="state-display">
+        <div class="state-value state-connectedToArduino">
+          <div class="label">Arduino</div>
+          <div class="value"></div>
+        </div>
+        <div class="state-value state-motorEnabled">
+          <div class="label">Motors</div>
+          <div class="value"></div>
+        </div>
+        <div class="state-value state-mode">
+          <div class="label">Mode</div>
+          <div class="value" style="font-weight: bold"></div>
+        </div>
+
+        <h3>Throttle</h3>
+        <div class="state-value state-throttleSpeed">
+          <div class="label">Speed</div>
+          <div class="value"></div>
+        </div>
+        <div class="state-value state-throttleSpeedRange">
+          <div class="label">Range</div>
+          <div class="value"></div>
+        </div>
+
+        <h3>Steering</h3>
+        <div class="state-value state-targetPos">
+          <div class="label">Target</div>
+          <div class="value"></div>
+        </div>
+        <div class="state-value state-currentPos">
+          <div class="label">Current</div>
+          <div class="value"></div>
+        </div>
+        <div class="state-value state-posRange">
+          <div class="label">Range</div>
+          <div class="value"></div>
+        </div>
+        <div class="state-value state-steeringSpeed">
+          <div class="label">Speed</div>
+          <div class="value"></div>
+        </div>
+        <div class="state-value state-steeringRadio">
+          <div class="label">RC Radio</div>
+          <div class="value"></div>
+        </div>
       </div>
 
       <div class="joystick-container">
@@ -154,20 +274,20 @@
   <script src="/socket.io/socket.io.js"></script>
 
   <script>
-    const socket = io()
-    const stateDisplay = document.querySelector('.state-display pre');
+    const root = document.querySelector('.root')
+    const rawStateDisplay = document.querySelector('.raw-state-display pre')
 
-    let arduinoState = null;
+    const throttleSlider = document.querySelector('#throttle')
+    const steeringSlider = document.querySelector('#steering')
+    const resetButton = document.querySelector('.reset')
 
-    socket.on('arduino-state', (data) => {
-      arduinoState = data;
-
-      stateDisplay.textContent = JSON.stringify(arduinoState, undefined, 2);
-    })
+    const remoteContainer = document.querySelector('.remote-container')
+    const throttleJoyValue = document.querySelector('#throttle-value')
+    const steeringJoyValue = document.querySelector('#steering-value')
 
     // callback params: { xPosition, yPosition, cardinalDirection, x, y }
-    const acceleratorJoy = new JoyStick(
-      'accelerator-joystick',
+    const throttleJoy = new JoyStick(
+      'throttle-joystick',
       { axis: 'y' },
       () => sendJoystickData()
     )
@@ -176,6 +296,62 @@
       { axis: 'x' },
       () => sendJoystickData()
     )
+
+    const socket = io()
+    let state = null
+
+    socket.on('state', (data) => {
+      state = data
+
+      rawStateDisplay.textContent = JSON.stringify(data, undefined, 2)
+
+      if (state.connectedToArduino) {
+        remoteContainer.style.pointerEvents = 'auto'
+        resetButton.disabled = false
+
+        throttleSlider.disabled = false
+        throttleSlider.min = state.throttle.minSpeed
+        throttleSlider.max = state.throttle.maxSpeed
+
+        steeringSlider.disabled = false
+        steeringSlider.min = -1 * state.steering.maxTurnDelta
+        steeringSlider.max = state.steering.maxTurnDelta
+      } else {
+        remoteContainer.style.pointerEvents = 'none'
+        resetButton.disabled = true
+        throttleSlider.disabled = true
+        steeringSlider.disabled = true
+      }
+
+      for (const [key, value] of Object.entries({
+        connectedToArduino: state.connectedToArduino ? '✅' : '❌',
+
+        ...(state.connectedToArduino ? {
+          motorEnabled: state.general.motorEnabled ? '✅' : '❌',
+          mode: state.general.mode.toUpperCase(),
+
+          throttleSpeed: `${state.throttle.speed} / 255`,
+          throttleSpeedRange: `${state.throttle.minSpeed} - ${state.throttle.maxSpeed}`,
+
+          targetPos: `${state.steering.targetPos} ± ${state.steering.stopDelta}`,
+          currentPos: state.steering.currentPos,
+          posRange: `${state.steering.centerPos} ± ${state.steering.maxTurnDelta}`,
+          steeringSpeed: `${state.steering.speed} / 255`,
+          steeringRadio: `${state.radio.steering} ms`
+        } : {})
+      })) {
+        document.querySelector(`.state-${key} .value`).textContent = value
+      }
+    })
+
+    socket.on('connect', () => {
+      root.classList.add('connected-to-server')
+    })
+
+    socket.on('disconnect', () => {
+      root.classList.remove('connected-to-server')
+      rawStateDisplay.textContent = 'Not connected to server!'
+    })
 
     // Based on https://www.arduino.cc/reference/en/language/functions/math/map/
     const mapNum = (x, inMin, inMax, outMin, outMax) =>
@@ -216,40 +392,43 @@
       // console.log(await res.json())
     }, 100)
 
-    function sendJoystickData() {
-      // TODO: get min/max values for speed and steering position from server
+    function toggleDebugMode() {
+      root.classList.toggle('debug-mode')
+    }
 
+    function sendJoystickData() {
+      let speedRange = state.throttle.maxSpeed - state.throttle.minSpeed
       let speed = Math.round(mapNum(
-        parseInt(acceleratorJoy.GetY(), 10),
+        parseInt(throttleJoy.GetY(), 10),
         -100, 100,
-        -30, 30
-      )) + 79
+        -1 * speedRange, speedRange
+      )) + (state.throttle.minSpeed - 1)
 
       let steering = Math.round(mapNum(
         parseInt(steeringJoy.GetX(), 10),
         -100, 100,
-        -185, 185
+        -1 * state.steering.maxTurnDelta, state.steering.maxTurnDelta
       ))
 
-      if (speed < 80)
+      if (speed < state.throttle.minSpeed)
         speed = 0
 
-      document.querySelector('#accelerator-value').textContent = speed || "stopped"
-      document.querySelector('#steering-value').textContent = steering
+      throttleJoyValue.textContent = speed || 'stopped'
+      steeringJoyValue.textContent = steering
 
       sendCommand(speed, steering)
     }
 
     function sendSliderData() {
       sendCommand(
-        parseInt(document.querySelector('#speed').value),
-        parseInt(document.querySelector('#steering').value)
+        parseInt(throttleSlider.value),
+        parseInt(steeringSlider.value)
       )
     }
 
     function reset() {
-      document.querySelector('#speed').value = 79
-      document.querySelector('#steering').value = 0
+      throttleSlider.value = state.throttle.minSpeed - 1
+      steeringSlider.value = 0
       sendCommand(0, 0)
     }
   </script>
