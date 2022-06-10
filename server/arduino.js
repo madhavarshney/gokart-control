@@ -9,6 +9,11 @@ function createSerialPort({ path, baudRate, onUpdate }) {
     console.log(`Serial port ${path} opened`)
   })
 
+  port.on('close', () => {
+    console.log(`Serial port ${serialPort} closed, trying to reopen`)
+    openSerialPort(port)
+  })
+
   parser.on('data', dataString => {
     let data;
 
@@ -25,6 +30,15 @@ function createSerialPort({ path, baudRate, onUpdate }) {
   return port
 }
 
+function openSerialPort(port) {
+  port.open((err) => {
+    if (err) {
+      console.log('Error opening port: ', err.message)
+      setTimeout(() => openSerialPort(port), 800)
+    }
+  })
+}
+
 function sendToArduino(port, params, callback) {
   const { speed, steering } = params
 
@@ -34,4 +48,4 @@ function sendToArduino(port, params, callback) {
   })
 }
 
-module.exports = { createSerialPort, sendToArduino }
+module.exports = { createSerialPort, openSerialPort, sendToArduino }
