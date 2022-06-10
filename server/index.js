@@ -51,7 +51,7 @@ if (enableRestControl) {
       console.log(req.params)
 
       if (!port.isOpen) {
-        return res.status(502).send({ error: 'Arduino not connected' });
+        return res.status(502).send({ error: 'Arduino not connected' })
       }
 
       sendToArduino(port, { speed, steering }, (err) => {

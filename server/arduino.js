@@ -15,16 +15,16 @@ function createSerialPort({ path, baudRate, onUpdate }) {
   })
 
   parser.on('data', dataString => {
-    let data;
+    let data
 
     try {
-      data = JSON.parse(dataString);
+      data = JSON.parse(dataString)
     } catch (err) {
-      console.log(`Unknown Arduino Message: ${dataString}`);
-      return;
+      console.log(`Unknown Arduino Message: ${dataString}`)
+      return
     }
 
-    onUpdate(data);
+    onUpdate(data)
   })
 
   return port
