@@ -10,7 +10,7 @@ function createSerialPort({ path, baudRate, onUpdate }) {
   })
 
   port.on('close', () => {
-    console.log(`Serial port ${serialPort} closed, trying to reopen`)
+    console.log(`Serial port ${path} closed, trying to reopen`)
     openSerialPort(port)
   })
 
