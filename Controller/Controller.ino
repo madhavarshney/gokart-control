@@ -16,12 +16,12 @@ constexpr size_t STEERING_LEFT_PIN       = 9;
 constexpr size_t STEERING_TEST_SERVO_PIN = 10;
 constexpr size_t STEERING_POS_IN_PIN     = A0;
 
-constexpr size_t THROTTLE_RADIO_IN_PIN = 7;
-constexpr size_t STEERING_RADIO_IN_PIN = 8;
+constexpr size_t THROTTLE_RADIO_IN_PIN = 3;
+constexpr size_t STEERING_RADIO_IN_PIN = 2;
 
-constexpr size_t ENABLE_PIN = 4;
-constexpr size_t RADIO_TOGGLE_PIN = 3;
-constexpr size_t MANUAL_TOGGLE_PIN = 2;
+constexpr size_t ENABLE_PIN = 8;
+constexpr size_t RADIO_TOGGLE_PIN = 7;
+constexpr size_t MANUAL_TOGGLE_PIN = 6;
 
 // Mode to use testing peripherals:
 // throttle - LED on PWM pin, steering - micro servo
@@ -31,8 +31,8 @@ bool enableThrottleRadioIn = false;
 bool enableSteeringRadioIn = true;
 
 // Pulse Widths
-int radioThrottlePW = 1500;
-int radioSteeringPW = 1500;
+volatile int radioThrottlePW = 1500;
+volatile int radioSteeringPW = 1500;
 
 bool requireCommandStream = true;
 
@@ -57,10 +57,15 @@ WiFiInput wifi(throttle, steering);
 void setup() {
   pinMode(STATUS_LED_PIN, OUTPUT);
 
-  if (enableThrottleRadioIn)
+  if (enableThrottleRadioIn) {
     pinMode(THROTTLE_RADIO_IN_PIN, INPUT);
-  if (enableSteeringRadioIn)
+    attachInterrupt(digitalPinToInterrupt(THROTTLE_RADIO_IN_PIN), onThrottleRadioInterrupt, CHANGE);
+  }
+
+  if (enableSteeringRadioIn) {
     pinMode(STEERING_RADIO_IN_PIN, INPUT);
+    attachInterrupt(digitalPinToInterrupt(STEERING_RADIO_IN_PIN), onSteeringRadioInterrupt, CHANGE);
+  }
 
   pinMode(ENABLE_PIN, INPUT_PULLUP);
   pinMode(RADIO_TOGGLE_PIN, INPUT_PULLUP);
@@ -175,13 +180,9 @@ void handleSerialInput() {
 
 /**
  * Scale radio control input and set values
- *
- * TODO: switch from pulseIn to interrupts
  */
 void handleRadioInput() {
   if (enableThrottleRadioIn) {
-    radioThrottlePW = pulseIn(THROTTLE_RADIO_IN_PIN, HIGH);
-
     throttle.setSpeed(map(
       radioThrottlePW, 1000, 2000,
       throttle.getMinSpeed(), throttle.getMaxSpeed()
@@ -189,12 +190,48 @@ void handleRadioInput() {
   }
 
   if (enableSteeringRadioIn) {
-    radioSteeringPW = pulseIn(STEERING_RADIO_IN_PIN, HIGH);
-
     steering.setTargetPos(map(
       radioSteeringPW, 1000, 2000,
       -1 * steering.getMaxTurnDelta(), steering.getMaxTurnDelta()
     ));
+  }
+}
+
+void onThrottleRadioInterrupt() {
+  static volatile unsigned long timerStart = 0;
+  static volatile int lastInterruptTime = 0;
+
+  handleRadioInterrupt(
+    THROTTLE_RADIO_IN_PIN, radioThrottlePW,
+    timerStart, lastInterruptTime
+  );
+}
+
+void onSteeringRadioInterrupt() {
+  static volatile unsigned long timerStart = 0;
+  static volatile int lastInterruptTime = 0;
+
+  handleRadioInterrupt(
+    STEERING_RADIO_IN_PIN, radioSteeringPW,
+    timerStart, lastInterruptTime
+  );
+}
+
+void handleRadioInterrupt(
+  int pin,
+  volatile int &pulseWidth,
+  volatile unsigned long &timerStart,
+  volatile int &lastInterruptTime
+) {
+  lastInterruptTime = micros();
+
+  if (digitalRead(pin) == HIGH) {
+    timerStart = micros();
+  } else {
+    if (timerStart != 0) {
+      pulseWidth = ((volatile int)micros() - timerStart);
+      timerStart = 0;
+    }
   }
 }
 
