@@ -14,8 +14,11 @@ private:
   int maxTurnDelta = 0;
   int minPos = 0;
   int maxPos = 0;
+  int maxSpeedThreshold = 0;
 
-  int steeringSpeed = 125;
+  int speed = 0;
+  int minSpeed = 0;
+  int maxSpeed = 0;
   int stopDelta = 20;
 
   bool motorEnabled = false;
@@ -23,11 +26,18 @@ private:
 
   int currentPos = 0;
   int targetPos = 0;
+  int currentPosError = 0;
 
   Servo *testServo = nullptr;
 
   void updateCurrentPos() {
     currentPos = analogRead(posPin);
+    currentPosError = abs(targetPos - currentPos);
+  }
+
+  void updateSpeed() {
+    float speedFraction = min((float) currentPosError / maxSpeedThreshold, 1);
+    speed = minSpeed + speedFraction * (maxSpeed - minSpeed);
   }
 
   Direction getDirection() {
@@ -41,7 +51,7 @@ private:
       return LEFT;
 
     // based on target position
-    if (abs(currentPos - targetPos) < stopDelta)
+    if (currentPosError < stopDelta)
       return STOP;
     else if (currentPos > targetPos)
       return LEFT;
@@ -64,12 +74,19 @@ public:
     testServo->attach(testServoPin);
   }
 
-  void calibrate(int _centerPos, int _maxTurnDelta) {
+  void calibrate(int _centerPos, int _maxTurnDelta, int _stopDelta) {
     centerPos = _centerPos;
     maxTurnDelta = _maxTurnDelta;
     minPos = centerPos - maxTurnDelta;
     maxPos = centerPos + maxTurnDelta;
     targetPos = centerPos;
+    stopDelta = _stopDelta;
+    maxSpeedThreshold = 0.5 * (maxPos - minPos); // TODO: make configurable
+  }
+
+  void setMinMaxSpeed(int _minSpeed, int _maxSpeed) {
+    minSpeed = _minSpeed;
+    maxSpeed = _maxSpeed;
   }
 
   int getCurrentPos() { return currentPos; }
@@ -81,7 +98,9 @@ public:
   int getMinPos() { return minPos; }
   int getMaxPos() { return maxPos; }
 
-  int getSpeed() { return steeringSpeed; }
+  int getSpeed() { return speed; }
+  int getMinSpeed() { return minSpeed; }
+  int getMaxSpeed() { return maxSpeed; }
   int getStopDelta() { return stopDelta; }
 
   bool isStopped() { return getDirection() == STOP; }
@@ -96,8 +115,7 @@ public:
 
   void update() {
     updateCurrentPos();
-
-    Direction direction = getDirection();
+    updateSpeed();
 
     if (testServo) {
       testServo->write(map(
@@ -108,12 +126,14 @@ public:
       return;
     }
 
+    Direction direction = getDirection();
+
     if (direction == LEFT) {
-      analogWrite(leftPin, steeringSpeed);
+      analogWrite(leftPin, speed);
       analogWrite(rightPin, 0);
     } else if (direction == RIGHT) {
       analogWrite(leftPin, 0);
-      analogWrite(rightPin, steeringSpeed);
+      analogWrite(rightPin, speed);
     } else {
       analogWrite(leftPin, 0);
       analogWrite(rightPin, 0);

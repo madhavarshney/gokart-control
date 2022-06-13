@@ -78,9 +78,12 @@ void setup() {
     );
 
   // Set min/max for throttle speed
-  throttle.setMinMaxSpeed(80, 110);
-  // Calibrate with center analog reading, max left/right turn amount
-  steering.calibrate(520, 185);
+  throttle.setMinMaxSpeed(70, 110);
+  // Calibrate with center analog reading, max left/right turn amount,
+  // and stop window
+  steering.calibrate(500, 200, 20);
+  // Set min/max steering motor speed
+  steering.setMinMaxSpeed(105, 240);
 
   Serial.begin(115200);
   while (!Serial)
@@ -214,6 +217,8 @@ void sendStateUpdate() {
   steeringDoc["centerPos"] = steering.getCenterPos();
   steeringDoc["maxTurnDelta"] = steering.getMaxTurnDelta();
   steeringDoc["speed"] = steering.getSpeed();
+  steeringDoc["minSpeed"] = steering.getMinSpeed();
+  steeringDoc["maxSpeed"] = steering.getMaxSpeed();
   steeringDoc["stopDelta"] = steering.getStopDelta();
 
   JsonObject radioDoc = doc.createNestedObject("radio");
