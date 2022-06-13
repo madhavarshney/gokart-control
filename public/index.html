@@ -310,7 +310,7 @@
         resetButton.disabled = false
 
         throttleSlider.disabled = false
-        throttleSlider.min = state.throttle.minSpeed
+        throttleSlider.min = state.throttle.minSpeed - 1
         throttleSlider.max = state.throttle.maxSpeed
 
         steeringSlider.disabled = false
@@ -382,7 +382,7 @@
     }
 
     const sendCommand = throttle(async (speed, steering) => {
-      if (speed < 80)
+      if (speed < state.throttle.minSpeed)
         speed = 0
 
       socket.volatile.emit('set', speed, steering)
