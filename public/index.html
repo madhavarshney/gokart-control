@@ -305,7 +305,7 @@
 
       rawStateDisplay.textContent = JSON.stringify(data, undefined, 2)
 
-      if (state.connectedToArduino) {
+      if (state.connectedToArduino && state.hasArduinoState) {
         remoteContainer.style.pointerEvents = 'auto'
         resetButton.disabled = false
 
@@ -326,7 +326,7 @@
       for (const [key, value] of Object.entries({
         connectedToArduino: state.connectedToArduino ? '✅' : '❌',
 
-        ...(state.connectedToArduino ? {
+        ...(state.connectedToArduino && state.hasArduinoState ? {
           motorEnabled: state.general.motorEnabled ? '✅' : '❌',
           mode: state.general.mode.toUpperCase(),
 

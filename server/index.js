@@ -14,9 +14,10 @@ const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, {})
 
+let forceDisconnectFromArduino = false
 let lastArduinoState = null
 
-const port = createSerialPort({
+const { port, setDisconnectPort } = createSerialPort({
   path: serialPort,
   baudRate: serialBaudRate,
   onUpdate: (data) => {
@@ -32,6 +33,8 @@ const port = createSerialPort({
 function sendState(socketOrIo) {
   socketOrIo.emit('state', {
     connectedToArduino: port.isOpen,
+    hasArduinoState: !!lastArduinoState,
+    forceDisconnectFromArduino,
     ...(lastArduinoState || {}),
   })
 }
@@ -52,6 +55,11 @@ io.on('connection', (socket) => {
     if (port.isOpen) {
       sendToArduino(port, { speed, steering })
     }
+  })
+
+  socket.on('set-disconnect-arduino', (shouldDisconnect) => {
+    setDisconnectPort(shouldDisconnect)
+    forceDisconnectFromArduino = shouldDisconnect
   })
 
   socket.on('disconnect', () => {
