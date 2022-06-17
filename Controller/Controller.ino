@@ -44,7 +44,8 @@ bool manualMode = true;
 unsigned long maxWaitTime = 3000; // 3 seconds
 unsigned long lastCommandTime = 0;
 
-unsigned long stateUpdateInterval = 200; // .2 seconds
+unsigned long currentMillis = 0;
+unsigned long stateUpdateInterval = 100; // 100 ms
 unsigned long lastStateUpdateTime = 0;
 
 Throttle throttle;
@@ -101,8 +102,7 @@ void setup() {
 }
 
 void loop() {
-  unsigned long currentMillis = millis();
-
+  currentMillis = millis();
   isStopped = steering.isStopped() && throttle.isStopped();
 
   motorEnabled = digitalRead(ENABLE_PIN);
@@ -139,6 +139,8 @@ void loop() {
   steering.update();
   throttle.update();
 
+  // TODO: check if re-setting currentMillis has unintended consequences
+  // with the state updates
   currentMillis = millis();
 
   if (currentMillis - lastStateUpdateTime > stateUpdateInterval) {
@@ -239,6 +241,7 @@ void sendStateUpdate() {
   StaticJsonDocument<384> doc;
 
   JsonObject generalDoc = doc.createNestedObject("general");
+  generalDoc["millis"] = currentMillis;
   generalDoc["motorEnabled"] = motorEnabled;
   generalDoc["mode"] = manualMode ? "manual" : radioMode ? "radio" : "phone";
   generalDoc["isStopped"] = isStopped;

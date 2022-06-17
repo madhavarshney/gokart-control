@@ -112,7 +112,7 @@
     }
 
     .state-display {
-      font-size: 1.1rem;
+      /* font-size: 1.1rem; */
       padding: 1rem;
       flex: 1;
       color: #777;
@@ -139,6 +139,11 @@
       .state-display {
         order: -1;
       }
+    }
+
+    .record-toolbar {
+      margin-top: .8rem;
+      text-align: center;
     }
 
     .joystick-container {
@@ -234,10 +239,10 @@
           <div class="label">Speed</div>
           <div class="value"></div>
         </div>
-        <div class="state-value state-throttleSpeedRange">
+        <!-- <div class="state-value state-throttleSpeedRange">
           <div class="label">Range</div>
           <div class="value"></div>
-        </div>
+        </div> -->
 
         <h3>Steering</h3>
         <div class="state-value state-targetPos">
@@ -259,6 +264,12 @@
         <div class="state-value state-steeringRadio">
           <div class="label">RC Radio</div>
           <div class="value"></div>
+        </div>
+
+        <div class="record-toolbar">
+          <button class="record-btn" onclick="toggleRecord()">🔴</button>
+          <button class="stop-btn" onClick="stopRecordOrPlay()">⏸️</button>
+          <button class="play-btn" onClick="togglePlay()">▶️</button>
         </div>
       </div>
 
@@ -330,13 +341,13 @@
           motorEnabled: state.general.motorEnabled ? '✅' : '❌',
           mode: state.general.mode.toUpperCase(),
 
-          throttleSpeed: `${state.throttle.speed} / 255`,
-          throttleSpeedRange: `${state.throttle.minSpeed} - ${state.throttle.maxSpeed}`,
+          throttleSpeed: `${state.throttle.speed} / ${state.throttle.minSpeed}-${state.throttle.maxSpeed}`,
+          // throttleSpeedRange: `${state.throttle.minSpeed} - ${state.throttle.maxSpeed}`,
 
           targetPos: `${state.steering.targetPos} ± ${state.steering.stopDelta}`,
           currentPos: state.steering.currentPos,
           posRange: `${state.steering.centerPos} ± ${state.steering.maxTurnDelta}`,
-          steeringSpeed: `${state.steering.speed} / 255`,
+          steeringSpeed: `${state.steering.speed} / ${state.steering.minSpeed}-${state.steering.maxSpeed}`,
           steeringRadio: `${state.radio.steering} ms`
         } : {})
       })) {
@@ -394,6 +405,22 @@
 
     function toggleDebugMode() {
       root.classList.toggle('debug-mode')
+    }
+
+    function toggleRecord() {
+      if (state && state.connectedToArduino && state.recording.mode !== 'RECORD') {
+        socket.emit('start-recording')
+      }
+    }
+
+    function togglePlay() {
+      if (state && state.connectedToArduino && state.recording.mode !== 'PLAY') {
+        socket.emit('play-recording')
+      }
+    }
+
+    function stopRecordOrPlay() {
+      socket.emit('stop-recording')
     }
 
     function sendJoystickData() {

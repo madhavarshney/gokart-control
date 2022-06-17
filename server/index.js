@@ -4,6 +4,15 @@ const express = require('express')
 
 const { createSerialPort, openSerialPort, sendToArduino } = require('./arduino')
 const {
+  recordingMode,
+  recordedStates,
+  curRecordingFrame,
+  startRecording,
+  addRecordingFrame,
+  stopRecording,
+  playRecording,
+} = require('./recording')
+const {
   enableRestControl,
   httpPort,
   serialPort,
@@ -16,12 +25,25 @@ const io = new Server(httpServer, {})
 
 let forceDisconnectFromArduino = false
 let lastArduinoState = null
+// let remoteIsConnected = false
 
 const { port, setDisconnectPort } = createSerialPort({
   path: serialPort,
   baudRate: serialBaudRate,
   onUpdate: (data) => {
     lastArduinoState = data
+
+    if (recordingMode === 'RECORD') {
+      addRecordingFrame({
+        time: data.general.millis,
+        throttleSpeed: data.throttle.speed,
+        steeringTargetPos: data.steering.targetPos,
+        steeringCurrentPos: data.steering.currentPos,
+        steeringSpeed: data.steering.speed,
+        steeringCenterPos: data.steering.centerPos,
+      })
+    }
+
     sendState(io)
   },
   onClose: () => {
@@ -35,11 +57,14 @@ function sendState(socketOrIo) {
     connectedToArduino: port.isOpen,
     hasArduinoState: !!lastArduinoState,
     forceDisconnectFromArduino,
+    recording: {
+      mode: recordingMode,
+      hasRecorded: recordedStates.length > 0,
+      currentFrame: curRecordingFrame,
+    },
     ...(lastArduinoState || {}),
   })
 }
-
-// let remoteIsConnected = false
 
 app.use(express.static('public'))
 
@@ -61,6 +86,10 @@ io.on('connection', (socket) => {
     setDisconnectPort(shouldDisconnect)
     forceDisconnectFromArduino = shouldDisconnect
   })
+
+  socket.on('start-recording', () => startRecording(port))
+  socket.on('stop-recording', () => stopRecording(port))
+  socket.on('play-recording', () => playRecording(port))
 
   socket.on('disconnect', () => {
     // remoteIsConnected = false
